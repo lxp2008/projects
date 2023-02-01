@@ -1,0 +1,78 @@
+[package]
+name = "mpc-sign"
+version = "0.1.0"
+edition = "2018"
+
+[[bin]]
+name = "mpc_client"
+path = "src/main.rs"
+
+[[example]]
+name = "ed25519_test"
+path = "src/ed25519_test.rs"
+
+#[[bin]]
+#name = "gg18_sign_qrcode"
+#path = "src/gg18_sign_qrcode.rs"
+
+[dependencies]
+serde_derive = "1.0"
+serde = "1.0"
+serde_json = "1.0"
+#libsecp256k1 = "0.3.2"
+libsecp256k1 = { package = "libsecp256k1", version = "0.3.2" }
+clap = { version = "2.33", features = ["yaml"] }
+curv = { package = "curv-kzen", version = "0.7", default-features = false }
+tiny-keccak = "1.4.4"
+criterion = "0.3"
+rust-crypto = "0.2"
+hex = "0.4"
+rocket = { version = "0.5.0-rc.1", features = ["json"] }
+rocket_sync_db_pools = { version = "0.1.0-rc.1", features = ["diesel_mysql_pool"] }
+reqwest = { version = "0.9", default-features = false }
+uuid = { version = "0.8", features = ["v4"] }
+rand = "0.8.5"
+rlp = "0.5"
+ring = "0.16.20"
+diesel = { version = "1.3", features = ["mysql", "r2d2"] }
+diesel_migrations = "1.3"
+futures = "0.3"
+flume = "0.10"
+image = "0.23"
+qrcode = "0.12.0"
+quircs = "0.10.0"
+#添加log配置
+log = "0.4.17"
+log4rs = "1.1.1"
+#rsa二次加密
+rsa = "0.6.1"
+base64 = "0.13.0"
+#接入btc
+bitcoin = "0.28.1"
+#nacos
+nacos_rust_client = "0.2"
+#获取ip地址
+local_ipaddress = "0.1.3"
+#全局变量
+lazy_static = "1.4.0"
+#x-www-form-urlencoded url 编码
+serde_urlencoded = "0.7.1"
+#redis
+#redis = "0.21.6"
+#错误自动转换处理
+anyhow = { version = "1.0.66", features = ["backtrace"] }
+thiserror = "1.0.37"
+#接入自定义doge依赖
+dogecoin = { path = "crates/dogecoin", version = "0.1.0" }
+
+#github转本地依赖引入
+web3 = { path = "crates/rust-web3", version = "0.17.0" }
+multi-party-ecdsa = { path = "crates/multi-party-ecdsa", version = "0.7.4" }
+multi-party-eddsa = { path = "crates/multi-party-eddsa", version = "0.2.3" }
+paillier = { path = "crates/rust-paillier", version = "0.3.10" }
+zk-paillier = { path = "crates/zk-paillier", version = "0.3.12" }
+#github
+# web3 = { git = "https://github.com/tomusdrw/rust-web3", tag = "v0.17.0" }
+# multi-party-ecdsa = { git = "https://github.com/ZenGo-X/multi-party-ecdsa", tag = "v0.7.4" }
+# rust-paillier = { git = "https://github.com/ZenGo-X/rust-paillier", default-features = false, tag = "v0.3.10" }
+# zk-paillier = { git = "https://github.com/ZenGo-X/zk-paillier", default-features = false, tag = "v0.3.12" }
