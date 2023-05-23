@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 从高到地低 OFF 、 FATAL 、 ERROR 、 WARN 、 INFO 、 DEBUG 、 TRACE 、 ALL -->
+<!-- 日志输出规则 根据当前ROOT 级别，日志输出时，级别高于root默认的级别时 会输出 -->
+<!-- 以下 每个配置的 filter 是过滤掉输出文件里面，会出现高级别文件，依然出现低级别的日志信息，通过filter 过滤只记录本级别的日志 -->
+
+<!-- 属性描述 scan：性设置为true时，配置文件如果发生改变，将会被重新加载，默认值为true scanPeriod:设置监测配置文件是否有修改的时间间隔，如果没有给出时间单位，默认单位是毫秒。当scan为true时，此属性生效。默认的时间间隔为1分钟。
+	debug:当此属性设置为true时，将打印出logback内部日志信息，实时查看logback运行状态。默认值为false。 -->
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <!--引用默认日志配置-->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <!--使用默认的控制台日志输出实现-->
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <!--应用名称-->
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="springBoot"/>
+    <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+    <property name="LOG_FILE_MAX_SIZE" value="10MB"/>
+    <!--日志文件保留天数，默认30天-->
+    <property name="LOG_FILE_MAX_HISTORY" value="30"/>
+    <!--日志文件保存路径 windows 默认C:\Users\'用户名'\AppData\Local\Temp\logs linux 默认：/tmp/logs-->
+    <property name="LOG_FILE_PATH" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/logs}"/>
+    <!--日志打印-->
+    <property name="console.log.pattern"
+              value="${CONSOLE_LOG_PATTERN:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+    <!--LogStash访问host-->
+    <springProperty name="LOG_STASH_HOST" scope="context" source="logstash.host" defaultValue="localhost"/>
+    <contextName>${APP_NAME}</contextName>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!--这里替换成AspectLogbackEncoder-->
+        <encoder class="com.yomahub.tlog.core.enhance.logback.AspectLogbackEncoder">
+            <pattern>${console.log.pattern}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ERROR级别日志 -->
+    <!-- 滚动记录文件，先将日志记录到指定文件，当符合某个条件时，将日志记录到其他文件 RollingFileAppender -->
+    <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 过滤器，只记录WARN级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder class="com.yomahub.tlog.core.enhance.logback.AspectLogbackEncoder">
+            <!--设置为默认的文件日志格式-->
+            <pattern>${console.log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--设置文件命名格式-->
+            <fileNamePattern>${LOG_FILE_PATH}/error/${APP_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+            <maxFileSize>${LOG_FILE_MAX_SIZE:-10MB}</maxFileSize>
+            <!--日志文件保留天数，默认30天-->
+            <maxHistory>${LOG_FILE_MAX_HISTORY:-30}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- WARN级别日志 appender -->
+    <appender name="WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 过滤器，只记录WARN级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>WARN</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder class="com.yomahub.tlog.core.enhance.logback.AspectLogbackEncoder">
+            <!--设置为默认的文件日志格式-->
+            <pattern>${console.log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--设置文件命名格式-->
+            <fileNamePattern>${LOG_FILE_PATH}/warn/${APP_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+            <maxFileSize>${LOG_FILE_MAX_SIZE:-10MB}</maxFileSize>
+            <!--日志文件保留天数，默认30天-->
+            <maxHistory>${LOG_FILE_MAX_HISTORY:-30}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- INFO级别日志 appender -->
+    <appender name="INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 过滤器，只记录INFO级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder class="com.yomahub.tlog.core.enhance.logback.AspectLogbackEncoder">
+            <!--设置为默认的文件日志格式-->
+            <pattern>${console.log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--设置文件命名格式-->
+            <fileNamePattern>${LOG_FILE_PATH}/info/${APP_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+            <maxFileSize>${LOG_FILE_MAX_SIZE:-10MB}</maxFileSize>
+            <!--日志文件保留天数，默认30天-->
+            <maxHistory>${LOG_FILE_MAX_HISTORY:-30}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- DEBUG级别日志 appender -->
+    <appender name="DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 过滤器，只记录DEBUG级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder class="com.yomahub.tlog.core.enhance.logback.AspectLogbackEncoder">
+            <!--设置为默认的文件日志格式-->
+            <pattern>${console.log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--设置文件命名格式-->
+            <fileNamePattern>${LOG_FILE_PATH}/debug/${APP_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+            <maxFileSize>${LOG_FILE_MAX_SIZE:-10MB}</maxFileSize>
+            <!--日志文件保留天数，默认30天-->
+            <maxHistory>${LOG_FILE_MAX_HISTORY:-30}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- TRACE级别日志 appender -->
+    <appender name="TRACE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 过滤器，只记录ERROR级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>TRACE</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder class="com.yomahub.tlog.core.enhance.logback.AspectLogbackEncoder">
+            <!--设置为默认的文件日志格式-->
+            <pattern>${console.log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--设置文件命名格式-->
+            <fileNamePattern>${LOG_FILE_PATH}/trace/${APP_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+            <maxFileSize>${LOG_FILE_MAX_SIZE:-10MB}</maxFileSize>
+            <!--日志文件保留天数，默认30天-->
+            <maxHistory>${LOG_FILE_MAX_HISTORY:-30}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+
+    <!--&lt;!&ndash; logstash 日志收集配置 appender &ndash;&gt;
+    &lt;!&ndash;DEBUG日志输出到LogStash&ndash;&gt;
+    <appender name="LOG_STASH_DEBUG" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        &lt;!&ndash; ThresholdFilter： 临界值过滤器，过滤掉低于指定临界值的日志。
+        它没有过多的参数，只有默认配置。当日志级别等于或高于临界值时，过滤器返回NEUTRAL；当日志级别低于临界值时，日志返回DENY &ndash;&gt;
+        &lt;!&ndash;<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>&ndash;&gt;
+        &lt;!&ndash; 过滤器，只记录DEBUG级别的日志 &ndash;&gt;
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <destination>${LOG_STASH_HOST}:4560</destination>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <provider class="com.yomahub.tlog.logstash.logback.TLogLogstashLogbackProvider"/>
+                &lt;!&ndash;自定义日志输出格式&ndash;&gt;
+                <pattern >
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "thread": "%thread",
+                        "class": "%logger{40}",
+                        "message": "%message",
+                        "stack_trace": "%exception{10}",
+                        "client_time": "%d{yyyy-MM-dd HH:mm:ss.SSS}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        &lt;!&ndash;当有多个LogStash服务时，设置访问策略为轮询&ndash;&gt;
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    &lt;!&ndash;ERROR日志输出到LogStash&ndash;&gt;
+    <appender name="LOG_STASH_ERROR" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <destination>${LOG_STASH_HOST}:4561</destination>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <provider class="com.yomahub.tlog.logstash.logback.TLogLogstashLogbackProvider"/>
+                &lt;!&ndash;自定义日志输出格式&ndash;&gt;
+                <pattern>
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "thread": "%thread",
+                        "class": "%logger{40}",
+                        "message": "%message",
+                        "stack_trace": "%exception{10}",
+                        "client_time": "%d{yyyy-MM-dd HH:mm:ss.SSS}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        &lt;!&ndash;当有多个LogStash服务时，设置访问策略为轮询&ndash;&gt;
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    &lt;!&ndash;业务日志输出到LogStash&ndash;&gt;
+    <appender name="LOG_STASH_BUSINESS" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${LOG_STASH_HOST}:4562</destination>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                &lt;!&ndash;自定义日志输出格式&ndash;&gt;
+                <pattern>
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "thread": "%thread",
+                        "class": "%logger{40}",
+                        "message": "%message",
+                        "stack_trace": "%exception{10}",
+                        "client_time": "%d{yyyy-MM-dd HH:mm:ss.SSS}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        &lt;!&ndash;当有多个LogStash服务时，设置访问策略为轮询&ndash;&gt;
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    &lt;!&ndash;接口访问记录日志输出到LogStash&ndash;&gt;
+    <appender name="LOG_STASH_RECORD" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${LOG_STASH_HOST}:4563</destination>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                &lt;!&ndash;自定义日志输出格式&ndash;&gt;
+                <pattern>
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "thread": "%thread",
+                        "class": "%logger{40}",
+                        "message": "%message",
+                        "stack_trace": "%exception{10}",
+                        "client_time": "%d{yyyy-MM-dd HH:mm:ss.SSS}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        &lt;!&ndash;当有多个LogStash服务时，设置访问策略为轮询&ndash;&gt;
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>-->
+
+    <!--控制框架输出日志-->
+    <logger name="org.slf4j" level="INFO"/>
+    <logger name="springfox" level="INFO"/>
+    <logger name="io.swagger" level="INFO"/>
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.hibernate.validator" level="INFO"/>
+    <logger name="com.ibatis" value="DEBUG"/>
+
+    <!-- 测试环境+开发环境. 多个使用逗号隔开. -->
+    <springProfile name="dev">
+        <!-- root级别 DEBUG -->
+        <root level="debug">
+            <!-- 控制台输出 -->
+            <appender-ref ref="STDOUT"/>
+            <!-- logstash-->
+<!--            <appender-ref ref="LOG_STASH_DEBUG"/>-->
+<!--            <appender-ref ref="LOG_STASH_ERROR"/>-->
+        </root>
+    </springProfile>
+
+    <!-- 生产环境. -->
+    <springProfile name="test,prod">
+        <!-- root级别 DEBUG -->
+        <root level="debug">
+            <!-- 控制台输出 -->
+            <appender-ref ref="CONSOLE"/>
+            <!-- 文件输出 -->
+            <appender-ref ref="ERROR"/>
+            <appender-ref ref="INFO"/>
+            <appender-ref ref="WARN"/>
+            <appender-ref ref="DEBUG"/>
+            <appender-ref ref="TRACE"/>
+
+            <!-- logstash-->
+<!--            <appender-ref ref="LOG_STASH_DEBUG"/>-->
+<!--            <appender-ref ref="LOG_STASH_ERROR"/>-->
+        </root>
+    </springProfile>
+</configuration>
