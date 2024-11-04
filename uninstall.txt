@@ -1,0 +1,15 @@
+# 查找已安装的 SQL Server Native Client
+$client = Get-WmiObject -Query "SELECT * FROM Win32_Product WHERE Name LIKE 'Microsoft SQL Server Native Client%'"
+
+if ($client) {
+    # 获取产品代码
+    $productCode = $client.IdentifyingNumber
+
+    # 卸载驱动程序
+    Write-Host "正在卸载 Microsoft SQL Server Native Client，产品代码为：$productCode"
+    Start-Process "msiexec.exe" -ArgumentList "/x $productCode /quiet /norestart" -Wait
+
+    Write-Host "卸载完成！"
+} else {
+    Write-Host "未找到 Microsoft SQL Server Native Client！"
+}
