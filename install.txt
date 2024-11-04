@@ -1,0 +1,20 @@
+# 定义驱动程序下载链接和安装路径
+$driverUrl = "https://download.microsoft.com/download/F/3/C/F3C64941-22A0-47E9-BC9B-1A19B4CA3E88/ENU/x64/sqlncli.msi"
+$installerPath = "C:\Temp\sqlncli.msi"
+
+# 创建临时目录
+New-Item -ItemType Directory -Path C:\Temp -Force
+
+# 下载驱动程序
+Invoke-WebRequest -Uri $driverUrl -OutFile $installerPath
+
+# 检查文件是否成功下载
+if (Test-Path $installerPath) {
+    # 安装驱动程序
+    Start-Process "msiexec.exe" -ArgumentList "/i `"$installerPath`" /quiet /norestart" -Wait
+    # 删除临时文件
+    Remove-Item -Path $installerPath -Force
+    Write-Host "Microsoft SQL Server Native Client 64-bit 驱动安装完成！"
+} else {
+    Write-Host "驱动程序下载失败，请检查下载链接！"
+}
