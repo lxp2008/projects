@@ -1,0 +1,23 @@
+# 设置网站名称
+$siteName = "nvs"
+
+# 检查日志是否启用，如果未启用，则启用日志
+$logFile = Get-WebConfigurationProperty -Filter "/system.applicationHost/sites/site[@name='$siteName']/logFile" -Name "enabled"
+
+if ($logFile -eq $null) {
+    # 启用日志记录
+    Set-WebConfigurationProperty -Filter "/system.applicationHost/sites/site[@name='$siteName']/logFile" -Name "enabled" -Value "True"
+}
+
+# 设置日志文件路径
+$logPath = "D:\IIS_Logs\nvs"
+Set-WebConfigurationProperty -Filter "/system.applicationHost/sites/site[@name='$siteName']/logFile" -Name "directory" -Value $logPath
+
+# 设置日志格式（W3C）
+Set-WebConfigurationProperty -Filter "/system.applicationHost/sites/site[@name='$siteName']/logFile" -Name "logFormat" -Value "W3C"
+
+# 设置日志文件的最大文件大小（例如：10 MB）
+Set-WebConfigurationProperty -Filter "/system.applicationHost/sites/site[@name='$siteName']/logFile" -Name "maxLogFileSize" -Value 10240
+
+# 设置日志文件的轮换（例如：按日期轮换）
+Set-WebConfigurationProperty -Filter "/system.applicationHost/sites/site[@name='$siteName']/logFile" -Name "period" -Value "Daily"
