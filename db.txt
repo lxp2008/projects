@@ -1,0 +1,19 @@
+On Error Resume Next
+
+Dim myobjCC
+Set myobjCC = Server.CreateObject("cspmclientatl64.ccspmclientatl64.1")
+
+If Err.Number <> 0 Then
+    Response.Write("Error creating object: " & Err.Description)
+    Response.End
+End If
+
+' 调用 retrieveCredentials 时，捕获错误
+retCCCode = myobjCC.retrieveCredentials("test", False, "whatever")
+
+If Err.Number <> 0 Then
+    Response.Write("Error during retrieveCredentials: " & Err.Description & " (Code: " & Err.Number & ")")
+    Response.End
+Else
+    Response.Write("Retrieve credentials returned: " & retCCCode)
+End If
