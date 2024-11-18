@@ -14,33 +14,38 @@ def reward_function(params):
     heading = params['heading']
 
     # 初始化奖励值
-    reward = 1.0
+    reward = 1e-3 if not all_wheels_on_track else 1.0  # 如果脱轨，惩罚
 
-    # 1. 动态弯道曲率计算
+    # 动态弯道曲率计算
     next_point = waypoints[closest_waypoints[1]]
     prev_point = waypoints[closest_waypoints[0]]
     track_direction = math.atan2(next_point[1] - prev_point[1], next_point[0] - prev_point[0])
     track_direction = math.degrees(track_direction)
     direction_diff = abs(track_direction - heading)
 
-    # 计算弯道曲率：曲率小表明直道，曲率大表明急弯
+    # 计算弯道曲率
     curve_radius = abs(track_width / direction_diff) if direction_diff != 0 else float('inf')
 
-    # 2. 弯道处理：动态调整速度和方向
-    if curve_radius > 15:  # 直道条件
+    # 1. 动态速度奖励
+    if curve_radius > 20:  # 直道条件
         if speed >= 4.0:
-            reward += 4.0  # 高速奖励
+            reward += 5.0  # 高速直道奖励
         elif speed >= 3.5:
-            reward += 2.0
+            reward += 3.0
         else:
-            reward *= 0.8  # 低速惩罚
-    else:  # 弯道条件
-        if speed < 2.5 and steering_angle < 20:
-            reward += 3.0  # 弯道低速通过奖励
-        elif speed > 2.5:
-            reward *= 0.6  # 弯道超速惩罚
+            reward *= 0.5  # 低速直道惩罚
+    elif curve_radius > 10:  # 中等弯道
+        if 2.5 <= speed <= 3.5:
+            reward += 3.0  # 弯道适中速度奖励
+        else:
+            reward *= 0.6
+    else:  # 急弯条件
+        if speed <= 2.5:
+            reward += 3.5  # 急弯低速奖励
+        else:
+            reward *= 0.5  # 急弯超速惩罚
 
-    # 3. 距离赛道中心奖励
+    # 2. 距离赛道中心奖励
     marker_1 = 0.1 * track_width
     marker_2 = 0.25 * track_width
     if distance_from_center <= marker_1:
@@ -48,27 +53,23 @@ def reward_function(params):
     elif distance_from_center <= marker_2:
         reward += 1.0
     else:
-        reward *= 0.5  # 偏离中心惩罚
+        reward *= 0.2  # 偏离中心惩罚
 
-    # 4. 智能方向修正
-    if direction_diff < 5:  # 几乎无偏差
-        reward += 2.5
-    elif direction_diff < 10:  # 可接受范围
-        reward += 1.5
+    # 3. 智能方向修正
+    if direction_diff < 5:
+        reward += 3.0  # 几乎无偏差
+    elif direction_diff < 10:
+        reward += 1.5  # 可接受范围
     else:
-        reward *= 0.4  # 偏差过大惩罚
+        reward *= 0.3  # 偏差过大惩罚
 
-    # 减少急转弯的惩罚
+    # 4. 减少急转角
     if steering_angle > 30:
-        reward *= 0.7
+        reward *= 0.5  # 惩罚急转弯
 
-    # 5. 提高步数效率
-    expected_progress = (steps / 12) * 100  # 步数与进度比例
+    # 5. 高效步数奖励
+    expected_progress = (steps / 8) * 100  # 假设目标步数在每 8 步完成 100% 的赛道进度
     if progress >= expected_progress:
-        reward += 15.0  # 高效完成奖励
-
-    # 6. 轮子保持在赛道上
-    if not all_wheels_on_track:
-        reward = 1e-3  # 脱轨极大惩罚
+        reward += 15.0  # 高效完成赛道的奖励
 
     return float(reward)
