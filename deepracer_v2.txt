@@ -1,0 +1,74 @@
+import math
+
+def reward_function(params):
+    # 获取输入参数
+    track_width = params['track_width']
+    distance_from_center = params['distance_from_center']
+    speed = params['speed']
+    steering_angle = abs(params['steering_angle'])
+    all_wheels_on_track = params['all_wheels_on_track']
+    progress = params['progress']
+    steps = params['steps']
+    waypoints = params['waypoints']
+    closest_waypoints = params['closest_waypoints']
+    heading = params['heading']
+
+    # 初始化奖励值
+    reward = 1.0
+
+    # 1. 动态弯道曲率计算
+    next_point = waypoints[closest_waypoints[1]]
+    prev_point = waypoints[closest_waypoints[0]]
+    track_direction = math.atan2(next_point[1] - prev_point[1], next_point[0] - prev_point[0])
+    track_direction = math.degrees(track_direction)
+    direction_diff = abs(track_direction - heading)
+
+    # 计算弯道曲率：越大表明弯道越急
+    curve_radius = abs(track_width / direction_diff) if direction_diff != 0 else float('inf')
+
+    # 2. 动态速度奖励（根据弯道和直道区分）
+    if curve_radius > 10:  # 直道条件
+        if speed >= 4.2:
+            reward += 3.0  # 最高速奖励
+        elif speed >= 3.5:
+            reward += 1.5
+        else:
+            reward *= 0.8  # 低速惩罚
+    else:  # 弯道条件
+        if speed < 2.5 and steering_angle < 20:
+            reward += 2.0  # 弯道低速稳定奖励
+        else:
+            reward *= 0.7  # 惩罚过快或急转弯
+
+    # 3. 轨迹优化（距离赛道中心奖励）
+    marker_1 = 0.1 * track_width
+    marker_2 = 0.25 * track_width
+    if distance_from_center <= marker_1:
+        reward += 1.5  # 非常接近中心
+    elif distance_from_center <= marker_2:
+        reward += 0.8
+    else:
+        reward *= 0.5  # 偏离过多惩罚
+
+    # 4. 智能方向修正（减少方向偏差和过度转向）
+    if direction_diff < 5:  # 基本无偏差
+        reward += 2.0
+    elif direction_diff < 10:  # 可接受范围
+        reward += 1.0
+    else:
+        reward *= 0.6  # 惩罚偏差较大的方向
+
+    # 减少急转弯的惩罚
+    if steering_angle > 30:
+        reward *= 0.8
+
+    # 5. 提高步数效率奖励
+    expected_progress = (steps / 10) * 100 / steps  # 根据步数计算期望进度
+    if progress >= expected_progress:
+        reward += 10.0  # 高效完成进度的奖励
+
+    # 6. 所有轮子保持在赛道上
+    if not all_wheels_on_track:
+        reward = 1e-3  # 如果脱轨，直接惩罚
+
+    return float(reward)
