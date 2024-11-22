@@ -1,0 +1,96 @@
+import math
+
+# static
+TOP_SPEED = 4.0  
+STEERING_ANGLE_THRESHOLD = 10
+IS_CLOCKWISE = False
+INTERVAL_TO_TARGET_WAY_POINT = 3
+ESTIMATED_TOTAL_NUM_STEPS = 300
+
+# 曲率计算：弯道与直道区分
+def get_direction_in_degree(next_point, prev_point):
+    track_direction = math.atan2(next_point[1] - prev_point[1], next_point[0] - prev_point[0])
+    return math.degrees(track_direction)
+
+def get_curve_radius(waypoints, closest_waypoints):
+    next_point = waypoints[closest_waypoints[1]]
+    prev_point = waypoints[closest_waypoints[0]]
+    track_direction = math.atan2(next_point[1] - prev_point[1], next_point[0] - prev_point[0])
+    direction_diff = abs(math.degrees(track_direction))
+    
+    # 曲率：大的曲率为直道，小的曲率为弯道
+    curve_radius = abs(1 / math.tan(math.radians(direction_diff))) if direction_diff != 0 else float('inf')
+    return curve_radius
+
+def get_speed_in_direction(target_direction, heading, speed):
+    direction_diff = abs(target_direction - heading)
+    if direction_diff > 180:
+        direction_diff = 360 - direction_diff
+    speed_bonus = math.cos(math.radians(direction_diff)) * speed / TOP_SPEED
+    return speed_bonus
+
+def reward_function(params):
+    '''
+    1. Don't run off the track.
+    2. Base reward when keeping all wheels on track and not heading towards the opposite way.
+    3. Encourage the agent to have a high speed towards a far side way point but slowing down on tight curves.
+    4. Give additional reward if the car pass every 100 steps faster than expected.
+    '''
+    
+    # Read input variables
+    x = params['x']
+    y = params['y']
+    waypoints = params['waypoints']
+    closest_waypoints = params['closest_waypoints']
+    heading = params['heading']
+    speed = params['speed']
+    is_offtrack = params['is_offtrack']
+    all_wheels_on_track = params['all_wheels_on_track']
+    is_reversed = params['is_reversed'] 
+    steps = params['steps']
+    progress = params['progress']
+    
+    reward = 0.0
+    
+    # 1. Don't terminate off track.
+    if is_offtrack:
+        return -10.0
+        
+    # 2. Base reward when keeping all wheels on track and not heading towards the opposite way.
+    if all_wheels_on_track and ((IS_CLOCKWISE and is_reversed) or (not IS_CLOCKWISE and not is_reversed)):
+        reward += 0.1
+    else:
+        if not all_wheels_on_track:
+            reward *= 0.5
+        if (IS_CLOCKWISE and not is_reversed) or (not IS_CLOCKWISE and is_reversed):
+            reward *= 0.5
+        
+    # 3. Calculate curve radius and speed adjustment
+    curve_radius = get_curve_radius(waypoints, closest_waypoints)
+    if curve_radius < 10:  # Tight curve
+        if speed > 2.0:
+            reward -= 2.0  # Slow down in tight curves
+        else:
+            reward += 2.0  # Keep low speed
+    else:  # Straight or moderate curve
+        if speed < 3.5:
+            reward += 2.0  # Encourage higher speeds on straight sections
+        elif speed >= 3.8:
+            reward += 3.0  # Reward higher speeds on straight sections
+
+    # 4. Speed bonus based on direction
+    target_way_point_idx = (closest_waypoints[1] + INTERVAL_TO_TARGET_WAY_POINT) % len(waypoints)
+    target_way_point = waypoints[target_way_point_idx]
+    target_direction = get_direction_in_degree(target_way_point, [x, y])
+    speed_bonus = get_speed_in_direction(target_direction, heading, speed)
+    reward += speed_bonus
+    
+    # 5. Progress reward for faster than expected completion
+    if (steps % 100) == 0 and progress > (steps / ESTIMATED_TOTAL_NUM_STEPS) * 100 :
+        reward += 10.0
+
+    # 6. Ensure smooth transitions to and from curves
+    if curve_radius < 15 and speed > 3.5:
+        reward -= 1.0  # Penalize high speed in sharp curves
+
+    return float(reward)
