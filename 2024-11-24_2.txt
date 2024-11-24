@@ -1,0 +1,60 @@
+def reward_function(params):
+    # 提取参数
+    all_wheels_on_track = params['all_wheels_on_track']
+    distance_from_center = params['distance_from_center']
+    track_width = params['track_width']
+    steering_angle = abs(params['steering_angle'])
+    speed = params['speed']
+    progress = params['progress']
+    is_offtrack = params['is_offtrack']
+    
+    # 奖励初始值
+    reward = 1.0
+
+    # 打印初始奖励值
+    print(f"Initial reward: {reward}")
+
+    # 奖励：如果车辆跑出赛道，立即返回惩罚
+    if is_offtrack:
+        print("Car is offtrack! Reward: 1e-3")
+        return 1e-3  # 惩罚出界
+
+    # 奖励：车辆尽量保持在赛道内
+    track_center_reward = 1.0 - (distance_from_center / (track_width / 2))
+    reward += track_center_reward
+    print(f"Track center reward: {track_center_reward}, Total reward: {reward}")
+
+    # 奖励：避免过度转向，太大的转向角会导致速度和稳定性降低
+    if steering_angle > 15:
+        steering_reward = 0.8  # 惩罚过度转向
+    else:
+        steering_reward = 1.2  # 鼓励适度转向
+    reward *= steering_reward
+    print(f"Steering reward: {steering_reward}, Total reward: {reward}")
+
+    # 奖励：控制车速，确保在合理的速度范围内
+    if speed < 3.5:
+        speed_reward = 1.2  # 鼓励较低的速度，特别是在弯道
+    elif speed > 4.5:
+        speed_reward = 0.9  # 稍微惩罚过高的速度，以保持稳定性
+    else:
+        speed_reward = 1.5  # 鼓励适中的车速（3.5 m/s ~ 4.5 m/s）
+    reward *= speed_reward
+    print(f"Speed reward: {speed_reward}, Total reward: {reward}")
+
+    # 奖励：让车保持在赛道中心并且顺利过弯
+    if distance_from_center < (track_width / 4) and steering_angle < 10:
+        cornering_reward = 1.5  # 鼓励平稳过弯，尤其是在较急的弯道
+        reward += cornering_reward
+        print(f"Cornering reward: {cornering_reward}, Total reward: {reward}")
+
+    # 奖励：如果车辆前进，并且进度较快，则给予额外奖励
+    if progress > 50:
+        progress_reward = 1.0  # 激励完成进度较高的部分
+        reward += progress_reward
+        print(f"Progress reward: {progress_reward}, Total reward: {reward}")
+
+    # 打印最终的奖励值
+    print(f"Final reward: {reward}")
+
+    return reward
