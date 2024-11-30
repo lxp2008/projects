@@ -1,0 +1,85 @@
+import math
+
+# 静态参数
+WAYPOINT_LOOKAHEAD_DISTANCE = 5  # 直线时使用更远的目标点
+TURN_LOOKAHEAD_DISTANCE = 2      # 非直线时使用较近的目标点
+MAX_STEERING_ANGLE = 30          # 最大允许转向角度
+STRAIGHT_THRESHOLD = 10          # 判断直线的曲率阈值
+ESTIMATED_TOTAL_NUM_STEPS = 300
+
+def calculate_distance(point1, point2):
+    """计算两点之间的欧几里得距离"""
+    return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
+
+def calculate_heading_difference(target_point, current_point, heading):
+    """计算目标点与车辆行驶方向的角度差"""
+    track_direction = math.atan2(target_point[1] - current_point[1], target_point[0] - current_point[0])
+    track_heading = math.degrees(track_direction)
+    direction_diff = abs(track_heading - heading)
+    return min(direction_diff, 360 - direction_diff)
+
+def reward_function(params):
+    # 提取输入参数
+    waypoints = params["waypoints"]
+    closest_waypoints = params["closest_waypoints"]
+    x, y = params["x"], params["y"]
+    heading = params["heading"]
+    all_wheels_on_track = params["all_wheels_on_track"]
+    speed = params["speed"]
+	steps = params['steps']
+    progress = params['progress']
+	
+    reward = 1.0  # 初始奖励
+    
+    # 1. 保证车在赛道内
+    if not all_wheels_on_track:
+        return 1e-3  # 严厉惩罚偏离赛道
+    
+    # 2. 判断前方路径是否为直线
+    next_waypoint = waypoints[closest_waypoints[1]]
+    farther_waypoint_idx = (closest_waypoints[1] + WAYPOINT_LOOKAHEAD_DISTANCE) % len(waypoints)
+    farther_waypoint = waypoints[farther_waypoint_idx]
+    distance_to_next = calculate_distance((x, y), next_waypoint)
+    distance_to_farther = calculate_distance((x, y), farther_waypoint)
+    
+    # 使用曲率判断直线或弯道
+    direction_diff = calculate_heading_difference(farther_waypoint, next_waypoint, heading)
+    is_straight = direction_diff < STRAIGHT_THRESHOLD
+
+    # 选择参考点
+    if is_straight:
+        target_waypoint = farther_waypoint
+    else:
+        target_waypoint = next_waypoint
+
+    # 3. 奖励基于方向的调整
+    heading_diff = calculate_heading_difference(target_waypoint, (x, y), heading)
+    if heading_diff < 5:
+        reward += 2.0  # 减小角度差
+    elif heading_diff < 15:
+        reward += 1.0  # 适当微调
+    else:
+        reward -= 1.0  # 惩罚大角度转向
+
+    # 4. 奖励基于速度
+    if is_straight:
+        if speed > 3.0:
+            reward += 2.0  # 鼓励在直线加速
+        else:
+            reward -= 1.0  # 惩罚直线减速
+    else:
+        if speed < 2.0:
+            reward += 1.0  # 鼓励弯道减速
+        else:
+            reward -= 1.0  # 惩罚弯道高速
+
+    # 5. 减少不必要的转向动作
+    steering = abs(params["steering_angle"])
+    if steering > MAX_STEERING_ANGLE:
+        reward -= 2.0  # 惩罚过大的转向角度
+
+    # 6. 进度奖励
+    expected_progress = (steps / ESTIMATED_TOTAL_NUM_STEPS) * 100
+    if progress > expected_progress + 5:
+        reward += 10.0
+    return float(reward)
