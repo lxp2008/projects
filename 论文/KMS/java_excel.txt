@@ -1,0 +1,48 @@
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+
+public class ExcelComparator {
+
+    public static void main(String[] args) {
+        String filePath = "your_excel_file.xlsx"; // 将这里的 your_excel_file.xlsx 替换为你的实际文件路径
+
+        try (FileInputStream fis = new FileInputStream(filePath);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0); // 获取第一个工作表
+            Set<String> aColumnValues = new HashSet<>();
+            Set<String> bColumnValues = new HashSet<>();
+
+            int rowNum = 4; // 跳过前三行，从第4行开始
+            for (Row row : sheet) {
+                if (row.getRowNum() >= rowNum - 1) { // 考虑到getRowNum是从0开始的
+                    Cell aCell = row.getCell(0); // A列
+                    Cell bCell = row.getCell(1); // B列
+
+                    if (aCell != null) {
+                        aColumnValues.add(aCell.toString());
+                    }
+                    if (bCell != null) {
+                        bColumnValues.add(bCell.toString());
+                    }
+                }
+            }
+
+            // 找出B列中有但A列中没有的值
+            bColumnValues.removeAll(aColumnValues);
+
+            System.out.println("B列中有但A列中没有的值:");
+            for (String value : bColumnValues) {
+                System.out.println(value);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
